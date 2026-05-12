@@ -2,7 +2,7 @@
 
 > AI-powered meeting assistant that transcribes audio/video, summarizes PDFs, and extracts key insights — built as a production-grade SaaS with Stripe billing and usage limits.
 
-![Dashboard Screenshot](screenshots/dashboard.png)
+![Dashboard Screenshot](./MVP/screenshots/dashboard.png)
 <!-- TODO: replace with actual screenshot -->
 
 ---
