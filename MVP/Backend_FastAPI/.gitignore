@@ -1,0 +1,63 @@
+# ── Python ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Virtual environments ─────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ── Secrets ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Database ─────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Uploads (user files — never commit) ─────────────
+uploads/
+
+# ── Logs ─────────────────────────────────────────────
+logs/
+*.log
+
+# ── Distribution / packaging ─────────────────────────
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# ── Testing & coverage ───────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Mypy / type checkers ─────────────────────────────
+.mypy_cache/
+.dmypy.json
+
+# ── Ruff / linters ───────────────────────────────────
+.ruff_cache/
+
+# ── Accidental node_modules (not a JS project) ───────
+node_modules/
+package.json
+package-lock.json
+
+# ── Editor ───────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
+
+# ── OS ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db

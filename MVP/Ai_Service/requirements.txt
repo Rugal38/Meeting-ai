@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+faster-whisper
+torch
+python-multipart
+pydantic
+python-dotenv
+ffmpeg-python
+pdfplumber
+groq

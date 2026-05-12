@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\bench\\\\OneDrive\\\\Desktop\\\\JAVAxAI_PROJECT\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(node -e \"require\\('react-icons/fa'\\); console.log\\('react-icons ok'\\)\")",
+      "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp ok'\\)\")"
+    ]
+  }
+}

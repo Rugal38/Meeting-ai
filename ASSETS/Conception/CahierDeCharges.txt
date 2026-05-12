@@ -1,0 +1,209 @@
+Voici un exemple de cahier des charges (simplifié mais professionnel) pour ton projet :
+
+Assistant IA de résumé pour entreprises
+
+---
+
+ Cahier des charges
+
+ Projet : Assistant IA de résumé de réunions pour entreprises
+
+ 1. Présentation du projet
+
+Le projet consiste à développer un assistant intelligent basé sur l’intelligence artificielle capable d’analyser et de résumer automatiquement :
+
+ les visioconférences
+ les réunions audio
+ les documents textuels
+ les discussions professionnelles
+
+L’objectif est de faciliter la gestion des réunions et de l’information dans les entreprises en générant automatiquement des comptes rendus clairs et structurés.
+
+---
+
+ 2. Objectifs du projet
+
+Les principaux objectifs sont :
+
+ réduire le temps passé à rédiger des comptes rendus
+ améliorer le suivi des décisions prises en réunion
+ identifier automatiquement les tâches et responsables
+ permettre une recherche rapide dans les réunions passées
+ centraliser les informations importantes
+
+---
+
+ 3. Utilisateurs cibles
+
+Le système est destiné principalement aux :
+
+ entreprises
+ équipes de projet
+ managers
+ équipes commerciales
+ équipes marketing
+ consultants
+
+---
+
+ 4. Fonctionnalités principales
+
+ 4.1 Transcription automatique
+
+Le système doit pouvoir :
+
+ convertir les réunions audio ou vidéo en texte
+ identifier les différents intervenants si possible
+ supporter plusieurs formats audio et vidéo
+
+Formats supportés :
+
+ mp3
+ wav
+ mp4
+ fichiers d’enregistrement de visioconférence
+
+---
+
+ 4.2 Résumé automatique
+
+L’IA doit générer un résumé structuré comprenant :
+
+ résumé général de la réunion
+ points clés discutés
+ décisions prises
+ actions à réaliser
+ responsables des actions
+
+---
+
+ 4.3 Extraction des tâches
+
+Le système doit détecter automatiquement :
+
+ les tâches mentionnées
+ les personnes responsables
+ les échéances
+
+Exemple :
+
+| Action                   | Responsable | Date     |
+| ------------------------ | ----------- | -------- |
+| Préparer la présentation | Sarah       | 12 avril |
+
+---
+
+ 4.4 Résumé de documents
+
+Le système doit pouvoir analyser et résumer :
+
+ documents texte
+ emails
+ rapports
+ comptes rendus
+
+Formats :
+
+ PDF
+ DOCX
+ TXT
+
+---
+
+ 4.5 Recherche intelligente
+
+Les utilisateurs doivent pouvoir rechercher des informations dans les réunions passées.
+
+Exemples :
+
+ "Quelles décisions ont été prises lors de la réunion marketing ?"
+ "Qui devait préparer la présentation ?"
+
+---
+
+ 4.6 Tableau de bord
+
+Interface permettant de :
+
+ consulter les résumés
+ voir les actions à réaliser
+ accéder aux transcriptions
+ rechercher dans les réunions
+
+---
+
+ 5. Intégrations externes
+
+Le système doit pouvoir s’intégrer avec :
+
+ Zoom
+ Microsoft Teams
+ Google Meet
+ Slack
+ Email professionnel
+
+---
+
+ 6. Exigences techniques
+
+ Backend
+
+ Java (Spring Boot / JEE)
+ API REST
+
+ Intelligence artificielle
+
+ Speech-to-text pour transcription
+ modèle de résumé automatique
+ NLP pour extraction d’informations
+
+ Base de données
+
+ PostgreSQL
+
+ Frontend
+
+ application web (React ou équivalent)
+
+---
+
+ 7. Sécurité
+
+Le système doit :
+
+ protéger les données des réunions
+ chiffrer les données sensibles
+ respecter la confidentialité des entreprises
+
+---
+
+ 8. Performance
+
+Le système doit être capable de :
+
+ traiter des réunions longues (1 à 2 heures)
+ générer un résumé en moins de quelques minutes
+ gérer plusieurs utilisateurs simultanément
+
+---
+
+ 9. Planning prévisionnel
+
+| Phase         | Description                    |
+| ------------- | ------------------------------ |
+| Analyse       | définition détaillée du projet |
+| Conception    | architecture technique         |
+| Développement | création du système            |
+| Tests         | validation des fonctionnalités |
+| Déploiement   | mise en production             |
+
+---
+
+ 10. Livrables
+
+ application web fonctionnelle
+ API backend
+ module IA de transcription et résumé
+ documentation technique
+ manuel utilisateur
+

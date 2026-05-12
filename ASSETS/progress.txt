@@ -1,0 +1,101 @@
+==================================================
+METTING ASSISTANT PROJECT - PROGRESS REPORT
+Date: 2026-04-26
+Status: End-to-End Prototype Operational
+==================================================
+
+1. AI SERVICE (PYTHON / FASTAPI) - PORT 8000
+--------------------------------------------------
+[DONE] Project structure (Routers, Services, Models)
+[DONE] Faster-Whisper integration (Medium model, CUDA, int8 optimization)
+[DONE] Mistral-7B-v0.3 integration (Unsloth 4-bit version for 8GB VRAM compatibility)
+[DONE] Video-to-Audio extraction service (FFmpeg integration with Windows path fix)
+[DONE] Language-aware AI Analysis (Strict French/English steering)
+[DONE] Structured LLM output parsing (Summary, Key Points, Conclusions)
+[DONE] Windows environment fixes (CUDA DLL injection, specific lib paths)
+
+2. BACKEND (SPRING BOOT 3) - PORT 8080
+--------------------------------------------------
+[DONE] Migration from Jakarta EE to Spring Boot 3.3.5
+[DONE] JWT Security implementation (Login, Signup, Protected Routes)
+[DONE] Database Schema (User, Meeting, Transcription, Resume, ProcessingJob)
+[DONE] H2 In-Memory database configuration (Zero-install setup)
+[DONE] Async orchestration (Calls AI service in background while tracking status)
+[DONE] API Fixes (CORS support, JSON Infinite Recursion fix)
+[DONE] Local file storage management
+
+3. FRONTEND (REACT / TYPESCRIPT / VITE) - PORT 5173
+--------------------------------------------------
+[DONE] Modern UI/UX with Vanilla CSS and Lucide Icons
+[DONE] Auth Flow (Login & Signup pages)
+[DONE] Dashboard (File upload with progress bar, meeting history)
+[DONE] Meeting Detail View (Tabbed Transcript vs. Summary/Insights)
+[DONE] Fun Processing Loader (Dynamic messages + Brain Pulse + Waveform)
+[DONE] API Integration (Axios with JWT interceptors)
+
+CURRENT CHALLENGES & NOTES
+--------------------------------------------------
+- FFmpeg: Hardcoded path at C:\ffmpeg\bin\ffmpeg.exe for Windows stability.
+- Database: Currently using H2 (RAM-only). Data is cleared on Backend restart.
+- Hardware: Optimized for RTX 3070 (8GB VRAM) and 16GB System RAM.
+- LLM: Using Unsloth 4-bit Mistral v0.3 for optimal speed/memory balance.
+
+NEXT STEPS
+--------------------------------------------------
+1. Persistent database (migration to PostgreSQL).
+2. Export results to PDF.
+3. Speaker identification (Diarization).
+4. Multi-language support extension (Darija).
+
+==================================================
+Project is now ready for full end-to-end testing.
+
+==================================================
+UPGRADE SESSION - 2026-04-30
+Status: UI Overhaul + Security Hardening Applied
+==================================================
+
+4. FRONTEND UPGRADE (FRAMER MOTION + DESIGN SYSTEM)
+--------------------------------------------------
+[DONE] Installed framer-motion and react-hot-toast
+[DONE] Unified dark-theme design system (single index.css, CSS custom properties)
+[DONE] Removed 5 scattered CSS files (Auth.css, Dashboard.css, MeetingDetail.css, ProcessingLoader.css, App.css)
+[DONE] AnimatePresence page transitions on all routes
+[DONE] LoginPage / SignupPage: split-screen brand panel + animated form entrance
+[DONE] DashboardPage: staggered card animations, drag-and-drop upload, animated progress bar
+[DONE] MeetingDetailPage: animated tab switching, auto-refresh polling, numbered insight lists
+[DONE] ProcessingLoader: Framer Motion pulsing rings + animated waveform bars
+[DONE] api.ts: 401 interceptor (auto-logout + redirect), VITE_API_URL env var support
+[DONE] src/types/index.ts: strict TypeScript interfaces (Meeting, Segment, User, MeetingStatus)
+[DONE] src/lib/animations.ts: shared Framer Motion variants
+[DONE] Replaced all alert() calls with react-hot-toast notifications
+[DONE] Client-side file validation (type + 500 MB size check before upload)
+
+5. BACKEND SECURITY FIXES
+--------------------------------------------------
+[DONE] JWT secret externalized to JWT_SECRET env var (no longer hardcoded)
+[DONE] Removed @CrossOrigin("*") from MeetingController (CORS handled in WebSecurityConfig)
+[DONE] FileStorageService: path traversal protection (normalized path check)
+[DONE] FileStorageService: server-side MIME type validation + 500 MB limit
+[DONE] FileStorageService: extension sanitized with regex before storing
+[DONE] Added DELETE /api/reunions/{id} endpoint with ownership check
+[DONE] application.properties: all sensitive values read from env vars with safe defaults
+
+6. AI SERVICE SECURITY FIXES
+--------------------------------------------------
+[DONE] Removed trust_remote_code=True from LLM loader (Mistral does not require it)
+[DONE] Internal stack traces no longer exposed in API error responses (logged server-side only)
+[DONE] TrustedHostMiddleware: restricts to localhost/127.0.0.1
+[DONE] Swagger UI disabled in production (docs_url=None)
+[DONE] CORS restricted to backend origin only
+[DONE] File size validated before writing to disk
+[DONE] Extension validated with regex before use
+
+KNOWN ISSUES (TO FIX NEXT SESSION)
+--------------------------------------------------
+[BUG] AI Service 500 error on POST /api/process — investigation ongoing.
+      Last confirmed fix: replaced hardcoded /tmp/ paths with tempfile.mkstemp()
+      (Windows does not have /tmp/ — mkstemp() resolves to %TEMP% automatically).
+      Status: fix applied, needs re-testing.
+
+==================================================

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\bench\\\\OneDrive\\\\Desktop\\\\JAVAxAI_PROJECT\\\\MVP\")",
+      "Bash(npm install *)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(mkdir -p \"C:\\\\Users\\\\bench\\\\OneDrive\\\\Desktop\\\\JAVAxAI_PROJECT\\\\MVP\\\\Frontend\\\\.claude\")",
+      "Bash(echo '{\"version\":\"0.0.1\",\"configurations\":[{\"name\":\"frontend\",\"runtimeExecutable\":\"npm\",\"runtimeArgs\":[\"run\",\"dev\"],\"port\":5173}]}')",
+      "Bash(npm run *)",
+      "Bash(grep -v \"^[[:space:]]*//\")",
+      "Bash(npx vite *)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

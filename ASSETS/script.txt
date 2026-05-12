@@ -1,0 +1,79 @@
+Slide 1 — Title
+"Good morning / Good afternoon everyone. Today I'm presenting MeetingAI — an AI-powered meeting assistant I built as part of my academic project. The goal was simple: take a meeting recording, upload it, and get a structured summary in minutes — automatically. What started as an MVP has grown into a full production-grade SaaS platform, and that's what I'll walk you through today."
+
+Slide 2 — Project Overview
+"So what exactly is MeetingAI? At its core, it's a web platform that takes audio files, video recordings, or PDF documents from meetings and runs them through an AI pipeline that produces a full transcript, a detailed summary, key points, and conclusions — all without any manual effort.
+
+It supports French and English, with Arabic planned as a next phase. Users are organized into three roles: standard free users, subscribed users on Pro or Business plans, and administrators who manage the platform. The core value proposition is straightforward: you upload a file, and within minutes you have a structured, readable summary of everything that was said."
+
+Slide 3 — Technology Stack
+"The project is built on three layers. On the frontend, I used React 19 with TypeScript, Vite as the build tool, and Framer Motion for animations. Payments are handled client-side with Stripe.js.
+
+The backend is a Python FastAPI application running on Python 3.14. It handles authentication with JWT, manages the database through SQLAlchemy, enforces usage limits, and integrates with Stripe for billing and webhooks.
+
+The AI service is a separate FastAPI instance running on Python 3.10 — this separation is intentional because the AI dependencies, particularly PyTorch and faster-whisper, require an older Python version. Transcription is done with OpenAI's Whisper model, and language understanding is powered by the Groq API running LLaMA 3.3 70B, which gives us very fast inference without needing to run a large model locally.
+
+For the database, SQLite is used in development, and the architecture is ready to switch to PostgreSQL for production."
+
+Slide 4 — System Architecture
+"The architecture is a three-service design. When a user uploads a file through the React frontend, the backend first validates it — checking the MIME type, file size, and usage limits. It then creates a processing job and delegates the heavy work to the AI service asynchronously.
+
+Depending on the file type: videos go through FFmpeg first to extract audio, then Whisper transcribes it, then the LLM analyzes it. PDFs skip Whisper entirely and go straight from text extraction to the LLM. The frontend polls for job status every few seconds and renders the results as soon as they're ready.
+
+The database has seven core tables covering users, meetings, transcriptions, summaries, files, processing jobs, and usage counters."
+
+Slide 5 — Completed Features Part 1
+"Let me walk through what's fully working. On the authentication and security side: users register and log in with JWT tokens that carry their role and plan tier. Passwords are hashed with bcrypt. Accounts support soft-deletion with a 30-day recovery window, and all file uploads are protected against path-traversal attacks with server-side MIME and size validation.
+
+For file processing: the platform accepts audio, video, PDF, and plain text files up to 500 megabytes. All processing happens asynchronously in the background with real-time job tracking, and I've personally tested recordings up to one hour in length."
+
+Slide 6 — Completed Features Part 2
+"On the AI side, Whisper automatically detects the language and produces timestamped transcript segments. The Groq LLaMA model then generates a detailed summary of 3 to 5 paragraphs, 8 to 12 key points, and 5 to 8 conclusions. For long transcripts, I implemented a map-reduce strategy — the text is split into chunks, each chunk is summarized individually, and then those summaries are synthesized into a final result. The prompts are language-aware, so French inputs get French outputs and English inputs get English outputs.
+
+For billing: I integrated Stripe Checkout and the Customer Portal. The system handles five webhook events to keep subscription state in sync. There are three plan tiers — Free, Pro at $9.99 a month, and Business at $29.99. Usage is tracked per billing period and reset automatically on renewal."
+
+Slide 7 — Key Improvements
+"A significant part of this project was debugging and iterating. Let me highlight the most important fixes.
+
+The first major issue was a bcrypt crash caused by the passlib library being incompatible with newer bcrypt versions — I replaced it with direct bcrypt calls. Then I had a type mismatch where audio duration was stored as an integer but the AI service returned a float, causing 500 errors on the meeting list endpoint.
+
+The most impactful fix was the timeout issue: a one-hour video takes up to 30 minutes to process, but the HTTP client had a 10-minute timeout. Raising it to two hours resolved this completely. I also added VAD filtering to Whisper, which prevents it from allocating 1.15 gigabytes of memory upfront for the full audio waveform.
+
+On the Stripe side, there was a subtle bug where price IDs were cached at module import time — before the environment variables were loaded — resulting in an empty allowed-price set. Moving that logic inside the request handler fixed it. I also had to correct a user error where a Product ID was used instead of a Price ID — those are different objects in Stripe's API.
+
+Finally, I migrated the original Spring Boot backend to FastAPI to have a consistent Python stack that integrates directly with the AI service."
+
+Slide 8 — Performance Benchmarks
+"Here are the real-world processing times measured on the target hardware: an RTX 3070 with 8 gigabytes of VRAM, a Ryzen 7 5800H, and 16 gigabytes of RAM.
+
+A 4-minute video takes about 7 minutes total — 1 minute for Whisper, 6 minutes for the LLM. A one-hour video takes around 32 minutes. A 50-page PDF, which skips Whisper entirely, takes about 4 minutes.
+
+Four optimizations make this possible: int8 quantization on Whisper to fit within 8 gigabytes of VRAM, VAD filtering to avoid the memory spike, keeping the LLM loaded in memory between requests to avoid reload overhead, and map-reduce chunking for transcripts longer than 2,000 words."
+
+Slide 9 — Billing Plans
+"The platform has three subscription tiers. The Free plan gives users 30 minutes of transcription and 10 AI summaries per month, plus 3 PDF text extractions per day. It resets on the first of each month.
+
+The Pro plan at $9.99 a month increases those limits to 600 minutes and 100 summaries, with unlimited PDF tools. The Business plan at $29.99 removes all limits entirely.
+
+Upgrades are handled through Stripe Checkout with a single click, and users can manage or cancel their subscription through the Stripe Customer Portal — all without touching the backend manually."
+
+Slide 10 — Roadmap
+"What's still left to build falls into three priority levels.
+
+High priority — meaning production-critical: migrating from SQLite to PostgreSQL for multi-user reliability, replacing FastAPI BackgroundTasks with Celery and Redis so jobs aren't lost on server restart, and adding email notifications for job completion and payment failures.
+
+Medium priority: real-time updates via WebSockets instead of polling, full-text search across transcripts, and speaker diarization — identifying who said what in a recording.
+
+And longer term: Darija language support for Moroccan Arabic, integrations with Zoom, Teams, and Google Meet, and team collaboration features."
+
+Slide 11 — Project Status
+"To summarize where things stand: the project is approximately 87% complete. The core processing pipeline, authentication, billing, usage tracking, and admin dashboard are all at 100%. The frontend UI is at 95% — fully functional, with minor polish remaining.
+
+What's at 0% are the production infrastructure items: the job queue, PostgreSQL migration, real-time updates, and speaker diarization. These are engineering investments for a production launch, not gaps in the MVP functionality."
+
+Slide 12 — Conclusion
+"To wrap up: MeetingAI is a fully functional, production-ready MVP. It has an end-to-end AI pipeline from upload to structured output, complete SaaS infrastructure with authentication, billing, and usage enforcement, a security-first architecture, and a clean modular codebase.
+
+The technology is proven and working. What remains is production hardening — PostgreSQL, a proper job queue, and deployment to cloud infrastructure.
+
+Thank you. I'm happy to take any questions."

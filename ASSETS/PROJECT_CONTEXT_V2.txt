@@ -1,0 +1,713 @@
+CONTEXTE PROJET - ASSISTANT IA DE REUNIONS
+Version: 2.0
+Date de mise a jour: 2026-04-25
+(V1 datee du 2026-03-15 — mise a jour apres analyse critique de l'architecture)
+
+========================================
+AVERTISSEMENT SUR CETTE VERSION
+========================================
+
+Ce fichier est la version enrichie du contexte original.
+Il conserve toutes les decisions initiales et y ajoute:
+- les risques identifies par analyse
+- les recommandations correctrices
+- les decisions a prendre avant de coder
+- les details manquants dans la V1
+
+Les sections marquees [RISQUE] ou [RECOMMANDATION] sont des ajouts V2.
+Les sections sans marquage sont issues de la V1 et restent valides.
+
+
+========================================
+1. VISION DU PROJET
+========================================
+
+Le projet consiste a developper un assistant intelligent capable de recevoir
+des fichiers audio, video ou texte, en particulier des reunions, puis de
+produire automatiquement:
+- une transcription
+- un resume
+- les points cles
+- les conclusions
+
+Le systeme devra a terme comprendre:
+- francais
+- anglais
+- darija marocaine
+
+Decision actuelle:
+- le MVP commence uniquement avec le francais et l'anglais
+- la darija sera ajoutee dans une phase ulterieure
+
+
+========================================
+2. OBJECTIF DU MVP
+========================================
+
+Le MVP doit permettre:
+- authentification simple
+- import de fichiers audio, video ou texte
+- stockage local des fichiers
+- extraction audio si le fichier est une video
+- transcription automatique
+- detection de langue: francais / anglais / mixte
+- generation d'un resume
+- extraction des points cles
+- extraction des conclusions
+- consultation des resultats dans une interface web
+- consultation de l'historique des reunions
+
+Le MVP ne doit pas encore inclure:
+- darija
+- diarisation des locuteurs
+- export PDF
+- temps reel
+- fine-tuning de modeles
+- systeme complexe de notifications
+
+[RECOMMANDATION] Ajouter au MVP ces deux gardes-fous simples:
+- verification de la taille du fichier avant traitement (limite: 500 MB)
+- verification de la duree estimee (limite: 3 heures)
+- retour d'erreur explicite si ces limites sont depassees
+Ces deux verifications evitent des jobs infinis qui bloquent le service.
+
+
+========================================
+3. STACK TECHNIQUE
+========================================
+
+--- FRONTEND ---
+React.js
+Statut: valide, aucun changement recommande.
+
+--- BACKEND ---
+Choix initial: JEE / Jakarta EE + JAX-RS + JPA / Hibernate
+
+[RISQUE] JEE est un choix risque pour un prototype local:
+- configuration lourde (serveurs WildFly ou Payara, descripteurs XML)
+- demarrage lent, iteration difficile
+- complexite disproportionnee pour un MVP a 3 blocs
+
+[RECOMMANDATION] Deux alternatives serieuses a considerer:
+
+Option A — Spring Boot (recommandee si Java est obligatoire):
+- meme ecosysteme JPA/Hibernate
+- meme style REST avec Spring MVC ou JAX-RS
+- demarrage en quelques secondes, zero XML obligatoire
+- documentation abondante, nombreux exemples disponibles
+
+Option B — Node.js + Express (si Java n'est pas une contrainte academique):
+- iteration tres rapide
+- JSON natif, pas de mapping objet
+- ORM: Sequelize ou Prisma pour PostgreSQL
+- moins adapte si le projet est evalue sur des criteres JEE
+
+Decision a prendre: JEE est-il une exigence academique ?
+- Si oui: garder JEE mais prevoir plus de temps de setup
+- Si non: passer a Spring Boot
+
+--- BASE DE DONNEES ---
+PostgreSQL
+Statut: valide, aucun changement recommande.
+
+--- SERVICE IA ---
+Python + FastAPI + Hugging Face
+Statut: valide, c'est le meilleur choix pour ce projet.
+
+--- OUTILS IA ---
+
+Transcription: faster-whisper
+Statut: valide. C'est le meilleur outil pour le RTX 3070.
+Parametres recommandes pour le MVP:
+- model_size: "medium" ou "large-v2" selon la qualite souhaitee
+- device: "cuda"
+- compute_type: "int8" (compromis vitesse/qualite optimal sur 8 GB VRAM)
+- beam_size: 2 (suffisant pour la qualite, moins lent que beam_size=5)
+- language: None (detection automatique) ou "fr"/"en" si connu a l'avance
+
+Detection de langue: fastText ou langdetect
+[RISQUE] Ces outils sont peu fiables sur des segments courts ou des langues melangees.
+[RECOMMANDATION] Utiliser en priorite la detection integree de faster-whisper:
+- faster-whisper retourne la langue detectee par segment automatiquement
+- utiliser fastText/langdetect uniquement en fallback sur les segments "unknown"
+- cela evite une passe supplementaire et ameliore la precision
+
+Modele de resume: Qwen2.5-3B-Instruct
+[RISQUE] Qualite insuffisante en francais, surtout pour les instructions complexes.
+[RECOMMANDATION] Preferer Mistral-7B-Instruct-v0.3 en quantification 4-bit (GPTQ):
+- bilingue FR/EN de conception
+- meilleure comprehension des instructions
+- taille en memoire: ~4.5 GB VRAM en 4-bit, compatible RTX 3070 8 GB
+- chargement avec: AutoModelForCausalLM + BitsAndBytesConfig (load_in_4bit=True)
+- si Mistral-7B depasse la VRAM disponible apres chargement de Whisper:
+  dechargement de Whisper avant chargement du LLM (les deux ne tournent pas en meme temps)
+
+Extraction audio: FFmpeg
+Statut: valide.
+Commande recommandee: ffmpeg -i input.mp4 -vn -acodec pcm_s16le -ar 16000 -ac 1 output.wav
+(mono 16kHz, format optimal pour Whisper)
+
+Stockage: local sur disque
+Statut: valide pour le MVP.
+
+
+========================================
+4. CONTRAINTES MATERIELLES
+========================================
+
+Machine disponible:
+- Lenovo Legion 5
+- RTX 3070 8 GB VRAM
+- Ryzen 7 5800H
+- 16 GB RAM
+
+Consequences techniques:
+- privilegier des modeles legers ou quantifies (4-bit ou 8-bit)
+- eviter les modeles 13B et au-dessus
+- traitement asynchrone obligatoire (voir section 5)
+- une seule analyse lourde a la fois (Whisper + LLM ne tournent pas simultanement)
+- le prototype local est realiste avec cette configuration
+
+[RECOMMANDATION] Strategie de gestion memoire GPU:
+- charger Whisper pour la transcription
+- dechargement explicite avec torch.cuda.empty_cache() apres la transcription
+- charger le LLM pour le resume
+- dechargement apres le resume
+- cette approche evite les OOM (out of memory) sur 8 GB VRAM
+
+
+========================================
+5. ARCHITECTURE RETENUE
+========================================
+
+Architecture generale:
+- React.js = interface utilisateur
+- Backend (JEE ou Spring Boot) = orchestration metier, API, base de donnees
+- Python FastAPI = moteur IA
+
+Flux principal:
+1. React envoie le fichier au backend
+2. Le backend valide le fichier (taille, type, duree estimee)
+3. Le backend stocke le fichier localement
+4. Le backend cree une entite Reunion avec statut EN_ATTENTE
+5. Le backend cree un JobTraitement
+6. Le backend soumet le job a la file d'attente asynchrone
+7. Un worker Python prend en charge le job
+8. Python extrait l'audio si le fichier est une video (FFmpeg)
+9. Python transcrit avec faster-whisper (detection de langue incluse)
+10. Python decoupe la transcription en segments si elle est longue
+11. Python genere le resume par chunks si necessaire (map-reduce)
+12. Python extrait les points cles et les conclusions
+13. Python retourne le JSON de resultats
+14. Le backend met a jour la Reunion et le JobTraitement
+15. React interroge le statut du job par polling et affiche les resultats
+
+[RISQUE CRITIQUE] File d'attente asynchrone manquante dans la V1:
+La V1 mentionne un JobTraitement mais ne definit pas le mecanisme d'execution.
+Sans file d'attente, FastAPI bloque sur les longues transcriptions et le frontend
+ne recoit pas de reponse.
+
+[RECOMMANDATION] Ajouter Celery + Redis au service Python:
+- Redis: broker de messages (leger, installation simple)
+- Celery: gestionnaire de taches en arriere-plan
+- FastAPI recoit la requete, cree la tache Celery, retourne immediatement un job_id
+- Le worker Celery execute la transcription + resume en arriere-plan
+- Le backend interroge le statut via GET /api/jobs/{id}
+
+Alternative plus simple si Celery semble complexe:
+- Python asyncio avec BackgroundTasks de FastAPI (suffisant pour 1 job a la fois)
+- Limitation: pas de file, pas de persistance des jobs en cas de crash
+
+[RECOMMANDATION] Suivi du statut cote frontend:
+- le frontend poll GET /api/jobs/{id} toutes les 3 secondes
+- quand statut = TERMINE, il charge les resultats
+- quand statut = ERREUR, il affiche le message d'erreur
+- pas besoin de WebSocket pour le MVP
+
+
+========================================
+6. STOCKAGE DES FICHIERS
+========================================
+
+Decision: stockage local sur disque pour le MVP.
+
+Organisation recommandee:
+- /uploads/audio/
+- /uploads/video/
+- /uploads/text/
+- /uploads/transcripts/
+- /uploads/results/
+
+Bonne pratique:
+- creer une abstraction StorageService
+- premiere implementation: LocalStorageService
+- extensions futures: MinioStorageService, S3StorageService
+
+[RECOMMANDATION] Nommage des fichiers:
+- utiliser un UUID comme nom de fichier cote serveur (ne pas conserver le nom original)
+- stocker le nom original dans la base de donnees (champ nom_original dans Fichier)
+- evite les collisions et les problemes de caracteres speciaux
+
+
+========================================
+7. DETECTION DE LANGUE
+========================================
+
+Decision pour le MVP:
+- francais et anglais uniquement
+- detection apres transcription, par segment
+
+[RECOMMANDATION V2] Pipeline corrige:
+1. transcription avec faster-whisper (la langue detectee est retournee par segment)
+2. agregation des langues detectees sur l'ensemble des segments
+3. calcul de la langue dominante
+4. etiquetage:
+   - fr: si plus de 80% des segments sont en francais
+   - en: si plus de 80% des segments sont en anglais
+   - mixed: si la distribution est equilibree
+   - unknown: si la detection echoue sur la majorite des segments
+5. fastText/langdetect comme fallback sur les segments marques "unknown"
+
+Remarque: la darija n'est pas traitee dans le MVP.
+
+
+========================================
+8. PIPELINE IA DETAILLE
+========================================
+
+[NOUVEAU - section manquante dans la V1]
+
+Etape 1 - Validation du fichier:
+- verifier le type MIME (audio/*, video/*, text/*)
+- verifier la taille (< 500 MB)
+- extraire la duree estimee si audio/video (via ffprobe)
+- rejeter si duree > 3 heures
+
+Etape 2 - Extraction audio (si video):
+- FFmpeg: conversion en WAV mono 16kHz
+- conserver le fichier audio dans /uploads/audio/
+
+Etape 3 - Transcription:
+- faster-whisper avec compute_type=int8 sur CUDA
+- retourne: texte brut, segments avec timestamps, langue par segment
+- filtrer les segments avec no_speech_prob > 0.6 (silence ou bruit)
+- sauvegarder la transcription brute
+
+Etape 4 - Detection de langue:
+- agregation depuis les segments faster-whisper
+- etiquette finale: fr / en / mixed / unknown
+
+Etape 5 - Chunking pour les longs textes:
+- si la transcription depasse 3000 tokens: decouper en chunks de 2500 tokens
+  avec un chevauchement de 200 tokens (overlap pour eviter les coupures)
+- si la transcription est courte: traitement direct sans chunking
+
+Etape 6 - Generation du resume (map-reduce si chunking):
+- Phase map: generer un resume partiel par chunk
+- Phase reduce: generer un resume final a partir des resumes partiels
+- Prompt en francais si langue = fr, en anglais si langue = en, en anglais si mixed
+
+Etape 7 - Extraction des points cles:
+- prompt dedie: demander au LLM de lister les decisions, actions et points importants
+- format attendu: liste de 3 a 8 points
+
+Etape 8 - Extraction des conclusions:
+- prompt dedie: synthese finale et prochaines etapes mentionnees
+- format attendu: liste de 1 a 5 conclusions
+
+Etape 9 - Construction du JSON de sortie et retour au backend
+
+
+========================================
+9. ENTITES PRINCIPALES DU PROJET
+========================================
+
+Classes/entites:
+- Utilisateur
+- Reunion
+- Fichier
+- Transcription
+- Resume
+- JobTraitement
+- Segment (nouveau - voir ci-dessous)
+
+Roles:
+- Utilisateur: personne utilisant l'application
+- Reunion: entite centrale representant une reunion analysee
+- Fichier: fichier importe (nom original, nom stocke, type, taille, chemin)
+- Transcription: texte transcrit complet + liste de segments timestampes
+- Resume: resume, points cles, conclusions
+- JobTraitement: suivi de l'etat du traitement asynchrone
+- Segment: portion de transcription avec timestamp debut/fin et langue detectee
+
+[RECOMMANDATION] Ajouter l'entite Segment ou la stocker en JSON dans Transcription:
+- permet d'afficher la transcription avec les timestamps dans l'interface
+- utile pour debug et pour la future diarisation
+
+Relations:
+- un Utilisateur possede plusieurs Reunion
+- une Reunion est associee a un Fichier
+- une Reunion produit une Transcription (qui contient des Segments)
+- une Reunion produit un Resume
+- une Reunion possede un JobTraitement
+
+
+========================================
+10. FORMAT JSON DE SORTIE DU SERVICE IA
+========================================
+
+Version corrigee et enrichie (V2):
+
+{
+  "meetingId": 1,
+  "titre": "Reunion projet",
+  "languePrincipale": "fr",
+  "dureeSecondes": 3620,
+  "dateCreation": "2026-04-25T10:30:00Z",
+  "transcription": "Texte complet de la transcription...",
+  "segments": [
+    {
+      "debut": 0.0,
+      "fin": 4.5,
+      "texte": "Bonjour a tous, on commence la reunion.",
+      "langue": "fr",
+      "confiance": 0.95
+    }
+  ],
+  "resume": "Texte du resume...",
+  "pointsCles": [
+    "Decision 1 prise lors de la reunion",
+    "Action assignee a X pour le 30 avril"
+  ],
+  "conclusions": [
+    "Le projet avance conformement au planning",
+    "Prochaine reunion fixee au 5 mai"
+  ],
+  "statut": "TERMINE",
+  "erreur": null
+}
+
+Valeurs possibles du champ statut:
+- EN_ATTENTE: job cree, pas encore pris en charge
+- EN_COURS: traitement en cours
+- TERMINE: traitement reussi
+- ERREUR: traitement echoue
+
+En cas d'erreur, le champ "erreur" contient le message:
+{
+  "statut": "ERREUR",
+  "erreur": "Fichier audio corrompu ou format non supporte"
+}
+
+Differences avec la V1:
+- ajout de dureeSecondes
+- ajout de dateCreation
+- ajout de segments (transcription timestampee)
+- ajout du champ confiance par segment
+- ajout du champ erreur
+- statut ERREUR documente
+
+
+========================================
+11. API REST
+========================================
+
+Authentification:
+- POST   /api/auth/login         Corps: {email, password} — retourne un token JWT
+- POST   /api/auth/logout        Invalide le token
+
+Reunions:
+- POST   /api/reunions/upload    Multipart: fichier + titre optionnel — cree Reunion + Job
+- GET    /api/reunions           Liste des reunions de l'utilisateur connecte
+- GET    /api/reunions/{id}      Detail d'une reunion
+- GET    /api/reunions/{id}/transcription   Transcription complete avec segments
+- GET    /api/reunions/{id}/resume          Resume, points cles, conclusions
+- DELETE /api/reunions/{id}      Supprime la reunion et ses fichiers associes
+
+Jobs:
+- GET    /api/jobs/{id}          Statut du job de traitement (pour le polling)
+
+[RECOMMANDATION] Ajouter ces endpoints manquants dans la V1:
+- DELETE /api/reunions/{id}  (la suppression est indispensable pour un historique)
+- POST /api/auth/logout      (securite basique)
+
+[RECOMMANDATION] Securiser toutes les routes avec JWT:
+- header Authorization: Bearer <token>
+- le backend verifie le token sur chaque requete
+
+
+========================================
+12. SCHEMA DE BASE DE DONNEES
+========================================
+
+[NOUVEAU - manquant dans la V1]
+
+Table utilisateurs:
+- id              SERIAL PRIMARY KEY
+- email           VARCHAR(255) UNIQUE NOT NULL
+- mot_de_passe    VARCHAR(255) NOT NULL  -- hash bcrypt
+- nom             VARCHAR(100)
+- date_creation   TIMESTAMP DEFAULT NOW()
+
+Table reunions:
+- id              SERIAL PRIMARY KEY
+- utilisateur_id  INTEGER REFERENCES utilisateurs(id)
+- titre           VARCHAR(255)
+- statut          VARCHAR(20) DEFAULT 'EN_ATTENTE'
+- langue          VARCHAR(10)
+- duree_secondes  INTEGER
+- date_creation   TIMESTAMP DEFAULT NOW()
+- date_mise_a_jour TIMESTAMP
+
+Table fichiers:
+- id              SERIAL PRIMARY KEY
+- reunion_id      INTEGER REFERENCES reunions(id)
+- nom_original    VARCHAR(255)
+- nom_stocke      VARCHAR(255)  -- UUID
+- type_mime       VARCHAR(100)
+- taille_octets   BIGINT
+- chemin          TEXT
+- date_upload     TIMESTAMP DEFAULT NOW()
+
+Table transcriptions:
+- id              SERIAL PRIMARY KEY
+- reunion_id      INTEGER REFERENCES reunions(id)
+- texte_complet   TEXT
+- segments_json   JSONB  -- liste des segments avec timestamps
+- date_creation   TIMESTAMP DEFAULT NOW()
+
+Table resumes:
+- id              SERIAL PRIMARY KEY
+- reunion_id      INTEGER REFERENCES reunions(id)
+- texte_resume    TEXT
+- points_cles     JSONB  -- liste de strings
+- conclusions     JSONB  -- liste de strings
+- date_creation   TIMESTAMP DEFAULT NOW()
+
+Table jobs_traitement:
+- id              SERIAL PRIMARY KEY
+- reunion_id      INTEGER REFERENCES reunions(id)
+- statut          VARCHAR(20) DEFAULT 'EN_ATTENTE'
+- message_erreur  TEXT
+- date_debut      TIMESTAMP
+- date_fin        TIMESTAMP
+- date_creation   TIMESTAMP DEFAULT NOW()
+
+
+========================================
+13. STRUCTURE DU PROJET
+========================================
+
+Arborescence:
+
+meeting-assistant/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/        -- appels API
+│   │   └── App.jsx
+│   └── package.json
+│
+├── backend/                 -- Spring Boot
+│   ├── src/
+│   │   ├── controllers/     -- endpoints REST
+│   │   ├── services/        -- logique metier
+│   │   ├── repositories/    -- acces base de donnees
+│   │   ├── entities/        -- entites JPA
+│   │   └── dto/             -- objets de transfert
+│   └── pom.xml
+│
+├── ai-service/
+│   ├── app/
+│   │   ├── main.py          -- entrypoint FastAPI
+│   │   ├── routers/
+│   │   │   ├── transcribe.py
+│   │   │   └── summarize.py
+│   │   ├── services/
+│   │   │   ├── whisper_service.py
+│   │   │   ├── llm_service.py
+│   │   │   ├── ffmpeg_service.py
+│   │   │   └── chunking_service.py
+│   │   ├── workers/
+│   │   │   └── analysis_worker.py  -- Celery ou BackgroundTasks
+│   │   └── models/
+│   │       └── schemas.py   -- Pydantic schemas
+│   ├── requirements.txt
+│   └── .env
+│
+└── uploads/
+    ├── audio/
+    ├── video/
+    ├── text/
+    ├── transcripts/
+    └── results/
+
+
+========================================
+14. ORDRE DE DEVELOPPEMENT RECOMMANDE
+========================================
+
+Phase 1 — Service Python: transcription uniquement
+Objectif: valider la qualite et la vitesse de transcription sur de vrais fichiers.
+- installer faster-whisper + CUDA
+- endpoint POST /transcribe (accepte un fichier audio)
+- retourner texte brut + segments + langue detectee
+- tester sur 3 fichiers reels (court / moyen / long)
+- mesurer: qualite, temps de traitement, consommation VRAM
+
+Phase 2 — Service Python: resume et analyse
+Objectif: valider la qualite du resume uniquement apres que la transcription est stable.
+- installer Mistral-7B-Instruct 4-bit
+- implementer le chunking pour les longs textes
+- endpoint POST /analyze (accepte une transcription)
+- retourner resume, points cles, conclusions
+- tester sur les memes fichiers que phase 1
+
+Phase 3 — Service Python: pipeline complet + async
+- connecter transcription + analyse en un seul pipeline
+- ajouter Celery + Redis (ou BackgroundTasks si MVP simple)
+- endpoint POST /process (fichier en entree, job_id en sortie)
+- endpoint GET /jobs/{job_id} (statut du job)
+
+Phase 4 — Backend
+- setup Spring Boot (ou JEE) + PostgreSQL
+- implémenter les entites et le schema de base de donnees
+- implémenter les endpoints REST
+- integration avec le service Python
+
+Phase 5 — Frontend React
+- pages: login, upload, liste des reunions, detail reunion
+- polling du statut de job
+- affichage transcription + resume
+
+Raison de cet ordre:
+- on valide d'abord que l'IA produit des resultats acceptables
+- on evite de construire un backend complet sur un pipeline IA non teste
+- on branche le frontend uniquement sur des API stables
+
+
+========================================
+15. DECISIONS A PRENDRE AVANT DE CODER
+========================================
+
+Decision 1: Backend JEE ou Spring Boot ?
+- si contrainte academique JEE obligatoire: garder JEE
+- sinon: passer a Spring Boot (fortement recommande)
+
+Decision 2: Async avec Celery+Redis ou BackgroundTasks FastAPI ?
+- Celery+Redis: plus robuste, persistance des jobs, relance en cas de crash
+- BackgroundTasks: plus simple, suffisant si 1 utilisateur a la fois
+- recommande: BackgroundTasks pour le MVP, migration Celery si besoin
+
+Decision 3: Mistral-7B ou Qwen2.5-3B pour le resume ?
+- Mistral-7B 4-bit: meilleure qualite FR/EN, ~4.5 GB VRAM
+- Qwen2.5-3B: plus leger, moins bon en francais
+- recommande: tester Mistral-7B d'abord, fallback Qwen si VRAM insuffisante
+
+Decision 4: Gestion des fichiers texte dans le pipeline IA ?
+- option A: skip la transcription, passer directement au resume
+- option B: traiter le texte comme une "transcription" et utiliser le meme pipeline
+- recommande: option B pour simplifier le code (un seul pipeline)
+
+Decision 5: Stocker les segments en base de donnees ou en fichier JSON ?
+- en base (JSONB PostgreSQL): plus facile a interroger, recommande
+- en fichier: plus simple a implementer mais moins flexible
+
+
+========================================
+16. JEU DE DONNEES DE TEST RECOMMANDE
+========================================
+
+[NOUVEAU - manquant dans la V1]
+
+Preparer avant de coder:
+- 1 fichier audio court (< 5 min) en francais
+- 1 fichier audio moyen (15-30 min) en anglais
+- 1 fichier video (MP4, < 1h) avec audio en francais
+- 1 fichier texte (.txt) contenant le compte-rendu d'une reunion
+- 1 fichier audio avec melange FR/EN (pour tester la detection mixed)
+- 1 fichier audio de mauvaise qualite (bruit de fond, test de robustesse)
+
+Metriques a mesurer lors des tests:
+- temps de transcription par minute d'audio
+- qualite subjective de la transcription (taux d'erreur mots)
+- qualite subjective du resume (pertinence, longueur)
+- consommation VRAM pendant le traitement
+- temps total de traitement de bout en bout
+
+
+========================================
+17. POINTS DE VIGILANCE AVANT LE LANCEMENT
+========================================
+
+Securite:
+- ne jamais stocker les mots de passe en clair (bcrypt obligatoire)
+- valider le type MIME cote serveur (ne pas faire confiance a l'extension)
+- limiter la taille des fichiers uploades (nginx ou validation applicative)
+- le service Python ne doit pas etre expose directement sur Internet
+
+Stabilite:
+- ajouter des logs structures dans le pipeline Python (debut/fin de chaque etape)
+- capturer et logguer toutes les exceptions dans le worker async
+- mettre a jour le statut JobTraitement a ERREUR en cas d'exception
+- ne pas laisser un job bloquer indefiniment (timeout recommande: 30 min)
+
+Qualite IA:
+- tester la transcription sur de vrais fichiers avant d'integrer le backend
+- tester le resume sur de vraies transcriptions avant d'integrer le backend
+- definir un critere d'acceptation minimal (ex: resume coherent et non vide)
+
+
+========================================
+18. RESUME DES DECISIONS FERMES (V2)
+========================================
+
+- MVP cible: assistant IA de reunions
+- Langues MVP: francais et anglais
+- Darija: reportee a phase ulterieure
+- Frontend: React.js (valide)
+- Backend: Spring Boot recommande (JEE si contrainte academique)
+- Base de donnees: PostgreSQL (valide)
+- Service IA: Python + FastAPI (valide)
+- Transcription: faster-whisper, compute_type=int8, CUDA (valide)
+- Detection de langue: via faster-whisper en priorite (correction V2)
+- Resume: Mistral-7B-Instruct 4-bit (recommandation V2, remplace Qwen2.5-3B)
+- Chunking: map-reduce pour les transcriptions > 3000 tokens (ajout V2)
+- Async: Celery+Redis ou BackgroundTasks FastAPI (ajout V2)
+- Stockage: local sur disque avec abstraction StorageService (valide)
+- Ordre de dev: Python transcription -> Python resume -> Python async -> Backend -> Frontend
+
+
+========================================
+19. NOTE POUR LA SUITE
+========================================
+
+Ce fichier sert de memoire projet pour reprendre rapidement le contexte.
+Il doit etre relu en debut de chaque session de travail.
+
+Prochaines etapes concretes:
+1. trancher les 5 decisions de la section 15
+2. installer l'environnement Python (CUDA, faster-whisper, transformers)
+3. tester la transcription sur un vrai fichier audio
+4. mesurer la qualite et le temps de traitement
+5. seulement apres: commencer le code du backend
+
+Ce fichier doit etre mis a jour a chaque decision importante.
+
+cmds: 
+
+.\mvnw spring-boot:run
+
+.\venv\Scripts\activate  
+uvicorn app.main:app --reload    
+
+npm run dev
+
+
+cd Backend_FastAPI
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env        # then set JWT_SECRET to something real
+uvicorn app.main:app --reload --port 8080
