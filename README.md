@@ -22,27 +22,27 @@
 ## Screenshots
 
 ### Login & Sign Up
-![Login Page](screenshots/login.png)
+![Login Page](./MVP/screenshots/login.png)
 <!-- TODO: replace with actual screenshot -->
 
 ### Dashboard — File Upload & Meeting History
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](./MVP/screenshots/dashboard.png)
 <!-- TODO: replace with actual screenshot -->
 
 ### Meeting Detail — Transcript & Summary
-![Meeting Detail](screenshots/meeting-detail.png)
+![Meeting Detail](./MVP/screenshots/meeting-detail.png)
 <!-- TODO: replace with actual screenshot -->
 
 ### Standalone Tools
-![Tools Page](screenshots/tools.png)
+![Tools Page](./MVP/screenshots/tools.png)
 <!-- TODO: replace with actual screenshot -->
 
 ### Billing & Plans
-![Billing Page](screenshots/billing.png)
+![Billing Page](./MVP/screenshots/billing.png)
 <!-- TODO: replace with actual screenshot -->
 
 ### Admin Dashboard
-![Admin Dashboard](screenshots/admin.png)
+![Admin Dashboard](./MVP/screenshots/admin.png)
 <!-- TODO: replace with actual screenshot -->
 
 ---
